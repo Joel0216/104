@@ -14,6 +14,8 @@
 
 import 'package:flutter/material.dart';
 
+import 'supplemental/cut_corners_border.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
 
@@ -39,12 +41,13 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16.0),
                 Text(
                   'SHRINE',
-                  style: Theme.of(context).textTheme.headlineLarge,
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ],
             ),
             const SizedBox(height: 120.0),
             // TODO: Remove filled: true values (103)
+            // TODO: Add TextField widgets (101)
             TextField(
               controller: _usernameController,
               decoration: const InputDecoration(
@@ -61,6 +64,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               obscureText: true,
             ),
+            // TODO: Add button bar (101)
             const SizedBox(height: 12.0),
             OverflowBar(
               alignment: MainAxisAlignment.end,

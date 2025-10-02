@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'model/product.dart';
 import 'model/products_repository.dart';
 import 'supplemental/asymmetric_view.dart';
+import 'colors.dart'; 
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -20,7 +21,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _filteredProducts = ProductsRepository.loadProducts(Category.all);
+    _applyFilters(); // Carga inicial
   }
 
   void _applyFilters() {
@@ -141,20 +142,27 @@ class _HomePageState extends State<HomePage> {
                       _selectedPriceRange = '';
                     });
                   },
-                  child: const Text('Limpiar'),
+                  // CORRECCIÓN: Estilo de botón de diálogo con color secundario (negro/marrón oscuro)
+                  child: Text('LIMPIAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Cancelar'),
+                  // CORRECCIÓN: Estilo de botón de diálogo con color secundario (negro/marrón oscuro)
+                  child: Text('CANCELAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     _applyFilters();
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Aplicar'),
+                  // CORRECCIÓN: Estilo de botón elevado con color secundario del tema
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.secondary, 
+                    foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                  ),
+                  child: const Text('APLICAR'),
                 ),
               ],
             );
@@ -170,10 +178,18 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SHRINE'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        // La AppBar toma su estilo del tema en lib/app.dart
+        leading: IconButton(
+          icon: const Icon(
+            Icons.menu,
+            semanticLabel: 'menu',
+          ),
+          onPressed: () {
+            print('Menu button');
+          },
+        ),
         actions: [
-          // Ícono de búsqueda
+          // Ícono de búsqueda (se ve negro gracias al tema)
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
@@ -183,6 +199,7 @@ class _HomePageState extends State<HomePage> {
                   return AlertDialog(
                     title: const Text('Buscar Productos'),
                     content: TextField(
+                      controller: TextEditingController(text: _searchQuery),
                       decoration: const InputDecoration(
                         hintText: 'Buscar por nombre o marca...',
                         border: OutlineInputBorder(),
@@ -200,16 +217,21 @@ class _HomePageState extends State<HomePage> {
                           setState(() {
                             _searchQuery = '';
                           });
+                          _applyFilters();
                           Navigator.of(context).pop();
                         },
-                        child: const Text('Cancelar'),
+                        child: Text('CANCELAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
                       ),
                       ElevatedButton(
                         onPressed: () {
                           _applyFilters();
                           Navigator.of(context).pop();
                         },
-                        child: const Text('Buscar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.secondary,
+                          foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                        ),
+                        child: const Text('BUSCAR'),
                       ),
                     ],
                   );
@@ -217,7 +239,7 @@ class _HomePageState extends State<HomePage> {
               );
             },
           ),
-          // Ícono de filtros
+          // Ícono de filtros (se ve negro gracias al tema)
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
@@ -230,7 +252,7 @@ class _HomePageState extends State<HomePage> {
               margin: const EdgeInsets.only(right: 8),
               child: Chip(
                 label: Text('${_filteredProducts.length} productos'),
-                backgroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.onPrimary,
                 onDeleted: () {
                   setState(() {
                     _searchQuery = '';
@@ -239,7 +261,7 @@ class _HomePageState extends State<HomePage> {
                   });
                   _applyFilters();
                 },
-                deleteIcon: const Icon(Icons.clear, size: 18),
+                deleteIcon: Icon(Icons.clear, size: 18, color: Theme.of(context).colorScheme.error),
               ),
             ),
         ],
@@ -254,6 +276,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Expanded(
                     child: TextField(
+                      controller: TextEditingController(text: _searchQuery),
                       decoration: InputDecoration(
                         hintText: 'Buscar...',
                         prefixIcon: const Icon(Icons.search),
@@ -287,8 +310,9 @@ class _HomePageState extends State<HomePage> {
             ),
           // Grid de productos
           Expanded(
+            // CORRECCIÓN CLAVE: Usar _filteredProducts (soluciona la línea amarilla al filtrar)
             child: AsymmetricView(
-              products: ProductsRepository.loadProducts(Category.all),
+              products: _filteredProducts, 
             ),
           ),
         ],

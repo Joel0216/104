@@ -49,7 +49,8 @@ class ProductCard extends StatelessWidget {
           child: imageWidget,
         ),
         SizedBox(
-          height: kTextBoxHeight * MediaQuery.of(context).textScaleFactor,
+          // CORRECCIÓN: Usar altura fija para evitar desbordamiento vertical.
+          height: kTextBoxHeight, 
           width: 121.0,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,

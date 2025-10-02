@@ -38,10 +38,9 @@ class TwoProductCardColumn extends StatelessWidget {
       // TODO: Change imageAspectRatio calculation (104)
       double imageAspectRatio = constraints.biggest.width / heightOfImages;
 
-      // TODO: Replace Column with a ListView (104)
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      // CORRECCIÓN CLAVE: Usar ListView en lugar de Column para evitar overflow.
+      return ListView(
+        physics: const ClampingScrollPhysics(), // Evita el rebote vertical no deseado
         children: <Widget>[
           Padding(
             padding: const EdgeInsetsDirectional.only(start: 28.0),
@@ -76,10 +75,15 @@ class OneProductCardColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Replace Column with a ListView (104)
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
+    // CORRECCIÓN CLAVE: Usar ListView en lugar de Column para evitar overflow.
+    return ListView(
+      physics: const ClampingScrollPhysics(), // Evita el rebote vertical no deseado
+      reverse: true,
+      shrinkWrap: true,
       children: <Widget>[
+        const SizedBox(
+          height: 40.0,
+        ),
         ConstrainedBox(
           constraints: const BoxConstraints(
             maxWidth: 550,
@@ -87,9 +91,6 @@ class OneProductCardColumn extends StatelessWidget {
           child: ProductCard(
             product: product,
           ),
-        ),
-        const SizedBox(
-          height: 40.0,
         ),
       ],
     );

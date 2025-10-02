@@ -24,7 +24,12 @@ class AsymmetricView extends StatelessWidget {
 
   List<Widget> _buildColumns(BuildContext context) {
     if (products.isEmpty) {
-      return <Container>[];
+      // Si no hay productos, retorna un mensaje centrado.
+      return <Widget>[
+        const Center(
+          child: Text('No se encontraron productos.', style: TextStyle(fontSize: 18.0)),
+        )
+      ];
     }
 
     /// This will return a list of columns. It will oscillate between the two
@@ -86,6 +91,7 @@ class AsymmetricView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // NOTA: El deslizamiento lateral es intencional en el diseño asimétrico.
     return ListView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(0.0, 34.0, 16.0, 44.0),

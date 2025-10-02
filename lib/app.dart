@@ -37,7 +37,7 @@ class ShrineApp extends StatelessWidget {
         // TODO: Change backLayer field value to CategoryMenuPage (104)
       },
       // TODO: Add a theme (103)
-      theme: _kShrineTheme, // New code
+      theme: _kShrineTheme,
     );
   }
 }
@@ -49,7 +49,7 @@ ThemeData _buildShrineTheme() {
   final ThemeData base = ThemeData.light();
   return base.copyWith(
     colorScheme: base.colorScheme.copyWith(
-      primary: kShrinePink100,
+      primary: const Color.fromARGB(255, 116, 187, 41),
       onPrimary: kShrineBrown900,
       secondary: kShrineBrown900,
       error: kShrineErrorRed,
@@ -57,9 +57,16 @@ ThemeData _buildShrineTheme() {
     // TODO: Add the text themes (103)
     textTheme: _buildShrineTextTheme(base.textTheme),
     textSelectionTheme: const TextSelectionThemeData(
-      selectionColor: kShrinePink100,
+      selectionColor: Color.fromARGB(255, 107, 168, 23),
     ),
-    // TODO: Add the icon themes (103)
+    // AÑADIDO: Tema de la AppBar para el color de fondo y texto/iconos negros
+    appBarTheme: const AppBarTheme(
+      foregroundColor: kShrineBrown900, // Color de íconos/texto (negro)
+      backgroundColor: Color.fromARGB(255, 74, 200, 24),
+      elevation: 0.0,
+    ),
+    // AÑADIDO: Tema de los íconos (para asegurar el color negro en la AppBar)
+    iconTheme: _buildShrineIconTheme(base.iconTheme),
     // TODO: Decorate the inputs (103)
     inputDecorationTheme: const InputDecorationTheme(
       border: CutCornersBorder(),
@@ -81,21 +88,36 @@ TextTheme _buildShrineTextTheme(TextTheme base) {
   return base.copyWith(
     headlineLarge: base.headlineLarge?.copyWith(
       fontWeight: FontWeight.w500,
+      letterSpacing: 1.0,
     ),
     headlineMedium: base.headlineMedium?.copyWith(
       fontSize: 18.0,
+      letterSpacing: 1.0,
     ),
     bodySmall: base.bodySmall?.copyWith(
       fontWeight: FontWeight.w400,
       fontSize: 14.0,
+      letterSpacing: 0.5,
     ),
     bodyLarge: base.bodyLarge?.copyWith(
       fontWeight: FontWeight.w500,
       fontSize: 16.0,
+      letterSpacing: 0.5,
+    ),
+    labelLarge: base.labelLarge?.copyWith(
+      fontWeight: FontWeight.w500,
+      letterSpacing: 1.0,
     ),
   ).apply(
     fontFamily: 'Rubik',
     displayColor: kShrineBrown900,
     bodyColor: kShrineBrown900,
+  );
+}
+
+// AÑADIDO: Función para el tema de íconos (color negro)
+IconThemeData _buildShrineIconTheme(IconThemeData base) {
+  return base.copyWith(
+    color: kShrineBrown900,
   );
 }
