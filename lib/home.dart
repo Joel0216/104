@@ -1,9 +1,25 @@
+// Copyright 2018-present the Flutter authors. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 import 'package:flutter/material.dart';
 
+import 'backdrop.dart'; // Importamos Backdrop para el menú de 3 palitos
+import 'category_menu_page.dart'; // Importamos el menú de categorías
 import 'model/product.dart';
 import 'model/products_repository.dart';
 import 'supplemental/asymmetric_view.dart';
-import 'colors.dart'; 
+import 'colors.dart'; // Importamos kShrineBrown900, kShrinePink50, etc.
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -13,13 +29,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Inicializa a String vacío para "Todas las marcas" / "Todos los precios"
-  String _searchQuery = '';
-  String _selectedBrand = ''; 
-  String _selectedPriceRange = '';
+  // --- Estado Global para Filtrado y Menú de Categorías ---
+  Category _currentCategory = Category.all;
+  String _searchQuery = ''; // Contiene el texto de la lupa
+  String _selectedBrand = ''; // Contiene la marca seleccionada en el filtro
+  String _selectedPriceRange = ''; // Contiene el rango de precio seleccionado en el filtro (low, medium, high)
+  
+  // Lista de productos para la vista
   List<Product> _filteredProducts = [];
-  // Para la barra de búsqueda en la AppBar (que abre el diálogo)
-  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -27,38 +44,39 @@ class _HomePageState extends State<HomePage> {
     _applyFilters();
   }
   
-  // Función principal para aplicar todos los filtros y actualizar la vista
+  // --- Lógica de Filtrado Principal ---
   void _applyFilters() {
     setState(() {
-      // Siempre carga TODOS los productos para empezar el filtrado desde cero
-      List<Product> products = ProductsRepository.loadProducts(Category.all);
+      // 1. Empezamos con los productos de la categoría seleccionada en el menú de 3 palitos
+      List<Product> products = ProductsRepository.loadProducts(_currentCategory);
       
-      // 1. Filtrar por búsqueda (busca si el nombre o marca CONTIENE la consulta)
+      // 2. Aplicar el filtro de búsqueda (Lupa): busca si el nombre o marca EMPIEZA por la consulta
       if (_searchQuery.isNotEmpty) {
+        String query = _searchQuery.toLowerCase();
         products = products.where((product) =>
-          product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          product.brand.toLowerCase().contains(_searchQuery.toLowerCase())
+          product.name.toLowerCase().startsWith(query) ||
+          product.brand.toLowerCase().startsWith(query)
         ).toList();
       }
       
-      // 2. Filtrar por marca (si no es '', aplica el filtro)
+      // 3. Aplicar el filtro por marca (Filtro - Marca)
       if (_selectedBrand.isNotEmpty) {
         products = products.where((product) =>
           product.brand == _selectedBrand
         ).toList();
       }
       
-      // 3. Filtrar por rango de precio (si no es '', aplica el filtro)
+      // 4. Aplicar el filtro por rango de precio (Filtro - Rango de Precio)
       if (_selectedPriceRange.isNotEmpty) {
         switch (_selectedPriceRange) {
-          case 'low':
+          case 'low': // Menos de $50
             products = products.where((product) => product.price < 50).toList();
             break;
-          case 'medium':
+          case 'medium': // $50 - $99
             products = products.where((product) => 
               product.price >= 50 && product.price < 100).toList();
             break;
-          case 'high':
+          case 'high': // $100 o más
             products = products.where((product) => product.price >= 100).toList();
             break;
         }
@@ -68,35 +86,37 @@ class _HomePageState extends State<HomePage> {
     });
   }
   
-  // Muestra el diálogo de filtros (Marca y Rango de Precio)
+  // --- Funciones para Diálogos ---
+  
+  // Diálogo de Filtros (Icons.tune)
   void _showFilterDialog() {
-    // Usamos variables temporales para no actualizar el estado principal antes de "APLICAR"
     String? tempSelectedBrand = _selectedBrand;
     String? tempSelectedPriceRange = _selectedPriceRange;
+
+    // Genera la lista de marcas únicas dinámicamente
+    final List<DropdownMenuItem<String>> brandItems = [
+      const DropdownMenuItem<String>(
+        value: '',
+        child: Text('Todas las marcas'),
+      ),
+      ...ProductsRepository.loadProducts(Category.all)
+          .map((product) => product.brand)
+          .toSet() // Obtiene solo las marcas únicas
+          .map((brand) => DropdownMenuItem<String>(
+            value: brand,
+            child: Text(brand),
+          )),
+    ];
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            
-            // Genera la lista de marcas únicas dinámicamente
-            final List<DropdownMenuItem<String>> brandItems = [
-              const DropdownMenuItem<String>(
-                value: '',
-                child: Text('Todas las marcas'),
-              ),
-              ...ProductsRepository.loadProducts(Category.all)
-                  .map((product) => product.brand)
-                  .toSet() // Obtiene solo las marcas únicas
-                  .map((brand) => DropdownMenuItem<String>(
-                    value: brand,
-                    child: Text(brand),
-                  )),
-            ];
-
             return AlertDialog(
+              // Título: "Filtros"
               title: const Text('Filtros'),
+              contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 0.0),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -124,7 +144,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     items: const [
                       DropdownMenuItem<String>(
-                        value: '', // Usar string vacío para "Todos"
+                        value: '', 
                         child: Text('Todos los precios'),
                       ),
                       DropdownMenuItem<String>(
@@ -169,7 +189,6 @@ class _HomePageState extends State<HomePage> {
                 // Botón APLICAR
                 ElevatedButton(
                   onPressed: () {
-                    // Solo actualiza el estado principal y aplica filtros al presionar APLICAR
                     setState(() {
                       _selectedBrand = tempSelectedBrand ?? '';
                       _selectedPriceRange = tempSelectedPriceRange ?? '';
@@ -195,7 +214,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
   
-  // Muestra el diálogo de Búsqueda
+  // Diálogo de Búsqueda (Icons.search)
   void _showSearchDialog() {
     String tempSearchQuery = _searchQuery; 
 
@@ -203,17 +222,20 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          // Título: "Buscar Productos"
           title: const Text('Buscar Productos'),
+          contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 0.0),
           content: TextField(
             autofocus: true,
-            controller: TextEditingController(text: tempSearchQuery),
+            // Permite al usuario editar la consulta antes de buscar
+            controller: TextEditingController(text: tempSearchQuery), 
             decoration: const InputDecoration(
               hintText: 'Buscar por nombre o marca...',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.search),
             ),
             onChanged: (value) {
-              tempSearchQuery = value;
+              tempSearchQuery = value; // Captura el texto mientras el usuario escribe
             },
             onSubmitted: (value) {
               // Aplica la búsqueda al presionar Enter/Submit
@@ -228,7 +250,6 @@ class _HomePageState extends State<HomePage> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Si cancela, pero había texto, lo deja como estaba
               },
               child: Text('CANCELAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
             ),
@@ -236,9 +257,9 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 // Aplica la búsqueda al presionar BUSCAR
                 setState(() {
-                  _searchQuery = tempSearchQuery;
+                  _searchQuery = tempSearchQuery; // Aplica la consulta capturada
+                  _applyFilters();
                 });
-                _applyFilters();
                 Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
@@ -256,63 +277,58 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+  
+  // --- Lógica del Menú de 3 Palitos (Backdrop) ---
+  
+  void _onCategoryTap(Category category) {
+    setState(() {
+      _currentCategory = category;
+      // Re-aplica filtros al cambiar la categoría principal
+      _applyFilters(); 
+    });
+  }
 
+  Widget _buildFrontLayer() {
+    if (_filteredProducts.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text(
+            'No se encontraron productos con los filtros aplicados.', 
+            style: TextStyle(fontSize: 18.0, color: kShrineBrown900),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    
+    return AsymmetricView(
+      products: _filteredProducts,
+    );
+  }
+
+  Widget _buildBackLayer() {
+    return CategoryMenuPage(
+      currentCategory: _currentCategory,
+      onCategoryTap: _onCategoryTap,
+    );
+  }
+
+  String _currentCategoryTitle(Category category) {
+    return category.toString().replaceAll('Category.', '').toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('SHRINE'),
-        leading: IconButton(
-          icon: const Icon(
-            Icons.menu,
-            semanticLabel: 'menu',
-          ),
-          onPressed: () {
-            // El menú de categoría no existe en esta versión
-            print('Menu button pressed'); 
-          },
-        ),
-        actions: [
-          // Ícono de búsqueda (Lupa)
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _showSearchDialog, // Abre el diálogo de búsqueda
-          ),
-          // Ícono de filtros
-          IconButton(
-            icon: const Icon(Icons.tune), // Usamos Icons.tune que es más común para filtros
-            onPressed: _showFilterDialog, 
-          ),
-        ],
-      ),
-      
-      body: Column(
-        children: [
-          // Mensaje de "No se encontraron productos"
-          if (_filteredProducts.isEmpty)
-            const Expanded(
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'No se encontraron productos.', 
-                    style: TextStyle(fontSize: 18.0, color: kShrineBrown900),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            )
-          else
-            // Grid de productos (solo si hay productos)
-            Expanded(
-              child: AsymmetricView(
-                products: _filteredProducts, 
-              ),
-            ),
-        ],
-      ),
-      resizeToAvoidBottomInset: false,
+    return Backdrop(
+      currentCategory: _currentCategory,
+      frontLayer: _buildFrontLayer(),
+      backLayer: _buildBackLayer(),
+      frontTitle: Text(_currentCategoryTitle(_currentCategory)),
+      backTitle: const Text('MENU'),
+      // Se pasa la referencia a los métodos para que los IconButtons de Backdrop los llamen.
+      onSearchPressed: _showSearchDialog, 
+      onFilterPressed: _showFilterDialog,
     );
   }
 }

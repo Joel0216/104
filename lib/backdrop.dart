@@ -3,9 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'colors.dart';
 import 'model/product.dart';
-import 'login.dart';
 
-// Constante para la velocidad de la animación
 const double _kFlingVelocity = 2.0;
 
 class Backdrop extends StatefulWidget {
@@ -14,6 +12,10 @@ class Backdrop extends StatefulWidget {
   final Widget backLayer;
   final Widget frontTitle;
   final Widget backTitle;
+  // Agregamos callbacks para los botones de búsqueda y filtro
+  final VoidCallback? onSearchPressed;
+  final VoidCallback? onFilterPressed;
+
 
   const Backdrop({
     required this.currentCategory,
@@ -21,6 +23,8 @@ class Backdrop extends StatefulWidget {
     required this.backLayer,
     required this.frontTitle,
     required this.backTitle,
+    this.onSearchPressed,
+    this.onFilterPressed,
     Key? key,
   }) : super(key: key);
 
@@ -48,7 +52,6 @@ class _FrontLayer extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          // Detector de gestos para cerrar el menú al tocar la capa frontal
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onTap,
@@ -92,25 +95,28 @@ class _BackdropTitle extends AnimatedWidget {
       softWrap: false,
       overflow: TextOverflow.ellipsis,
       child: Row(children: <Widget>[
-        // Icono de la marca animado
+        // Ícono de menú animado
         SizedBox(
           width: 72.0,
           child: IconButton(
             padding: const EdgeInsets.only(right: 8.0),
             onPressed: this.onPress,
             icon: Stack(children: <Widget>[
-              // El menú inclinado (desaparece al abrir el menú)
+              // Ícono de menú (3 palitos)
               Opacity(
-                opacity: animation.value,
-                child: const ImageIcon(AssetImage('assets/slanted_menu.png')),
+                opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: const Interval(0.5, 1.0),
+                ).value,
+                child: const Icon(Icons.menu), // Icono de menú estándar (Icons.menu)
               ),
-              // El diamante (aparece al abrir el menú)
-              FractionalTranslation(
-                translation: Tween<Offset>(
-                  begin: Offset.zero,
-                  end: const Offset(1.0, 0.0),
-                ).evaluate(animation),
-                child: const ImageIcon(AssetImage('assets/diamond.png')),
+              // Ícono de cerrar (X) (solo se muestra cuando el menú está a mitad o totalmente abierto)
+              Opacity(
+                opacity: CurvedAnimation(
+                  parent: ReverseAnimation(animation),
+                  curve: const Interval(0.5, 1.0),
+                ).value,
+                child: const Icon(Icons.close),
               )
             ]),
           ),
@@ -118,6 +124,7 @@ class _BackdropTitle extends AnimatedWidget {
         // Título animado
         Stack(
           children: <Widget>[
+            // Título de la capa de atrás ("MENU")
             Opacity(
               opacity: CurvedAnimation(
                 parent: ReverseAnimation(animation),
@@ -131,6 +138,7 @@ class _BackdropTitle extends AnimatedWidget {
                 child: backTitle,
               ),
             ),
+            // Título de la capa frontal (Categoría actual)
             Opacity(
               opacity: CurvedAnimation(
                 parent: animation,
@@ -209,10 +217,12 @@ class _BackdropState extends State<Backdrop>
     return Stack(
       key: _backdropKey,
       children: <Widget>[
+        // Capa de Atrás (Menú)
         ExcludeSemantics(
           child: widget.backLayer,
           excluding: _frontLayerVisible,
         ),
+        // Capa Frontal (Productos)
         PositionedTransition(
           rect: layerAnimation,
           child: _FrontLayer(
@@ -229,17 +239,11 @@ class _BackdropState extends State<Backdrop>
     var appBar = AppBar(
       elevation: 0.0,
       titleSpacing: 0.0,
-      // Color de fondo y texto asegurado por el tema o localmente
       backgroundColor: kShrinePink100, 
       foregroundColor: kShrineBrown900,
       systemOverlayStyle: SystemUiOverlayStyle.dark, 
       
-      // Ícono principal del menú (los "3 palitos")
-      leading: IconButton(
-        icon: const Icon(Icons.menu),
-        onPressed: _toggleBackdropLayerVisibility, // ¡Aquí se llama a la función de desplegar!
-      ),
-      // Título animado
+      // Ícono de menú principal (los "3 palitos" / "X")
       title: _BackdropTitle(
         listenable: _controller.view,
         onPress: _toggleBackdropLayerVisibility,
@@ -247,26 +251,17 @@ class _BackdropState extends State<Backdrop>
         backTitle: widget.backTitle,
       ),
       actions: <Widget>[
-        // Íconos de acción (Lupa y Filtro, que ahora llevan al Login)
+        // Ícono de búsqueda (Lupa)
         IconButton(
-          icon: const Icon(Icons.search, semanticLabel: 'login'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (BuildContext context) => const LoginPage()),
-            );
-          },
+          icon: const Icon(Icons.search, semanticLabel: 'search'),
+          // LLAMA A LA FUNCIÓN DE BÚSQUEDA DEL HOME.DART
+          onPressed: widget.onSearchPressed, 
         ),
+        // Ícono de filtros
         IconButton(
-          icon: const Icon(Icons.tune, semanticLabel: 'login'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (BuildContext context) => const LoginPage()),
-            );
-          },
+          icon: const Icon(Icons.tune, semanticLabel: 'filter'),
+          // LLAMA A LA FUNCIÓN DE FILTROS DEL HOME.DART
+          onPressed: widget.onFilterPressed, 
         ),
       ],
     );
