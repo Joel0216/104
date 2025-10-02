@@ -13,22 +13,27 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // Inicializa a String vacío para "Todas las marcas" / "Todos los precios"
   String _searchQuery = '';
-  String? _selectedBrand;
-  String? _selectedPriceRange;
+  String _selectedBrand = ''; 
+  String _selectedPriceRange = '';
   List<Product> _filteredProducts = [];
+  // Para la barra de búsqueda en la AppBar (que abre el diálogo)
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _applyFilters(); // Carga inicial
+    _applyFilters();
   }
-
+  
+  // Función principal para aplicar todos los filtros y actualizar la vista
   void _applyFilters() {
     setState(() {
+      // Siempre carga TODOS los productos para empezar el filtrado desde cero
       List<Product> products = ProductsRepository.loadProducts(Category.all);
       
-      // Filtrar por búsqueda
+      // 1. Filtrar por búsqueda (busca si el nombre o marca CONTIENE la consulta)
       if (_searchQuery.isNotEmpty) {
         products = products.where((product) =>
           product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -36,15 +41,15 @@ class _HomePageState extends State<HomePage> {
         ).toList();
       }
       
-      // Filtrar por marca
-      if (_selectedBrand != null && _selectedBrand!.isNotEmpty) {
+      // 2. Filtrar por marca (si no es '', aplica el filtro)
+      if (_selectedBrand.isNotEmpty) {
         products = products.where((product) =>
           product.brand == _selectedBrand
         ).toList();
       }
       
-      // Filtrar por rango de precio
-      if (_selectedPriceRange != null && _selectedPriceRange!.isNotEmpty) {
+      // 3. Filtrar por rango de precio (si no es '', aplica el filtro)
+      if (_selectedPriceRange.isNotEmpty) {
         switch (_selectedPriceRange) {
           case 'low':
             products = products.where((product) => product.price < 50).toList();
@@ -62,13 +67,34 @@ class _HomePageState extends State<HomePage> {
       _filteredProducts = products;
     });
   }
-
+  
+  // Muestra el diálogo de filtros (Marca y Rango de Precio)
   void _showFilterDialog() {
+    // Usamos variables temporales para no actualizar el estado principal antes de "APLICAR"
+    String? tempSelectedBrand = _selectedBrand;
+    String? tempSelectedPriceRange = _selectedPriceRange;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            
+            // Genera la lista de marcas únicas dinámicamente
+            final List<DropdownMenuItem<String>> brandItems = [
+              const DropdownMenuItem<String>(
+                value: '',
+                child: Text('Todas las marcas'),
+              ),
+              ...ProductsRepository.loadProducts(Category.all)
+                  .map((product) => product.brand)
+                  .toSet() // Obtiene solo las marcas únicas
+                  .map((brand) => DropdownMenuItem<String>(
+                    value: brand,
+                    child: Text(brand),
+                  )),
+            ];
+
             return AlertDialog(
               title: const Text('Filtros'),
               content: Column(
@@ -76,41 +102,29 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   // Filtro por marca
                   DropdownButtonFormField<String>(
-                    value: _selectedBrand,
+                    value: tempSelectedBrand == '' ? '' : tempSelectedBrand,
                     decoration: const InputDecoration(
                       labelText: 'Marca',
                       border: OutlineInputBorder(),
                     ),
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: '',
-                        child: Text('Todas las marcas'),
-                      ),
-                      ...ProductsRepository.loadProducts(Category.all)
-                          .map((product) => product.brand)
-                          .toSet()
-                          .map((brand) => DropdownMenuItem<String>(
-                            value: brand,
-                            child: Text(brand),
-                          )),
-                    ],
+                    items: brandItems,
                     onChanged: (value) {
                       setDialogState(() {
-                        _selectedBrand = value;
+                        tempSelectedBrand = value ?? '';
                       });
                     },
                   ),
                   const SizedBox(height: 16),
                   // Filtro por rango de precio
                   DropdownButtonFormField<String>(
-                    value: _selectedPriceRange,
+                    value: tempSelectedPriceRange == '' ? '' : tempSelectedPriceRange,
                     decoration: const InputDecoration(
                       labelText: 'Rango de Precio',
                       border: OutlineInputBorder(),
                     ),
                     items: const [
                       DropdownMenuItem<String>(
-                        value: '',
+                        value: '', // Usar string vacío para "Todos"
                         child: Text('Todos los precios'),
                       ),
                       DropdownMenuItem<String>(
@@ -128,45 +142,116 @@ class _HomePageState extends State<HomePage> {
                     ],
                     onChanged: (value) {
                       setDialogState(() {
-                        _selectedPriceRange = value;
+                        tempSelectedPriceRange = value ?? '';
                       });
                     },
                   ),
                 ],
               ),
               actions: [
+                // Botón LIMPIAR
                 TextButton(
                   onPressed: () {
                     setDialogState(() {
-                      _selectedBrand = '';
-                      _selectedPriceRange = '';
+                      tempSelectedBrand = '';
+                      tempSelectedPriceRange = '';
                     });
                   },
-                  // CORRECCIÓN: Estilo de botón de diálogo con color secundario (negro/marrón oscuro)
                   child: Text('LIMPIAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
                 ),
+                // Botón CANCELAR
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  // CORRECCIÓN: Estilo de botón de diálogo con color secundario (negro/marrón oscuro)
                   child: Text('CANCELAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
                 ),
+                // Botón APLICAR
                 ElevatedButton(
                   onPressed: () {
+                    // Solo actualiza el estado principal y aplica filtros al presionar APLICAR
+                    setState(() {
+                      _selectedBrand = tempSelectedBrand ?? '';
+                      _selectedPriceRange = tempSelectedPriceRange ?? '';
+                    });
                     _applyFilters();
                     Navigator.of(context).pop();
                   },
-                  // CORRECCIÓN: Estilo de botón elevado con color secundario del tema
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.secondary, 
-                    foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                    elevation: 8.0,
+                    backgroundColor: kShrineBrown900, 
+                    foregroundColor: kShrinePink50,
+                    shape: const BeveledRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(7.0)),
+                    ),
                   ),
                   child: const Text('APLICAR'),
                 ),
               ],
             );
           },
+        );
+      },
+    );
+  }
+  
+  // Muestra el diálogo de Búsqueda
+  void _showSearchDialog() {
+    String tempSearchQuery = _searchQuery; 
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Buscar Productos'),
+          content: TextField(
+            autofocus: true,
+            controller: TextEditingController(text: tempSearchQuery),
+            decoration: const InputDecoration(
+              hintText: 'Buscar por nombre o marca...',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.search),
+            ),
+            onChanged: (value) {
+              tempSearchQuery = value;
+            },
+            onSubmitted: (value) {
+              // Aplica la búsqueda al presionar Enter/Submit
+              setState(() {
+                _searchQuery = value;
+              });
+              _applyFilters();
+              Navigator.of(context).pop();
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Si cancela, pero había texto, lo deja como estaba
+              },
+              child: Text('CANCELAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Aplica la búsqueda al presionar BUSCAR
+                setState(() {
+                  _searchQuery = tempSearchQuery;
+                });
+                _applyFilters();
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                elevation: 8.0,
+                backgroundColor: kShrineBrown900,
+                foregroundColor: kShrinePink50,
+                shape: const BeveledRectangleBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(7.0)),
+                ),
+              ),
+              child: const Text('BUSCAR'),
+            ),
+          ],
         );
       },
     );
@@ -178,143 +263,53 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('SHRINE'),
-        // La AppBar toma su estilo del tema en lib/app.dart
         leading: IconButton(
           icon: const Icon(
             Icons.menu,
             semanticLabel: 'menu',
           ),
           onPressed: () {
-            print('Menu button');
+            // El menú de categoría no existe en esta versión
+            print('Menu button pressed'); 
           },
         ),
         actions: [
-          // Ícono de búsqueda (se ve negro gracias al tema)
+          // Ícono de búsqueda (Lupa)
           IconButton(
             icon: const Icon(Icons.search),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Buscar Productos'),
-                    content: TextField(
-                      controller: TextEditingController(text: _searchQuery),
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar por nombre o marca...',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.search),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                          _applyFilters();
-                          Navigator.of(context).pop();
-                        },
-                        child: Text('CANCELAR', style: TextStyle(color: Theme.of(context).colorScheme.secondary)),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          _applyFilters();
-                          Navigator.of(context).pop();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.secondary,
-                          foregroundColor: Theme.of(context).colorScheme.onSecondary,
-                        ),
-                        child: const Text('BUSCAR'),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+            onPressed: _showSearchDialog, // Abre el diálogo de búsqueda
           ),
-          // Ícono de filtros (se ve negro gracias al tema)
+          // Ícono de filtros
           IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: _showFilterDialog,
+            icon: const Icon(Icons.tune), // Usamos Icons.tune que es más común para filtros
+            onPressed: _showFilterDialog, 
           ),
-          // Mostrar filtros activos
-          if (_selectedBrand != null && _selectedBrand!.isNotEmpty ||
-              _selectedPriceRange != null && _selectedPriceRange!.isNotEmpty ||
-              _searchQuery.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              child: Chip(
-                label: Text('${_filteredProducts.length} productos'),
-                backgroundColor: Theme.of(context).colorScheme.onPrimary,
-                onDeleted: () {
-                  setState(() {
-                    _searchQuery = '';
-                    _selectedBrand = null;
-                    _selectedPriceRange = null;
-                  });
-                  _applyFilters();
-                },
-                deleteIcon: Icon(Icons.clear, size: 18, color: Theme.of(context).colorScheme.error),
-              ),
-            ),
         ],
       ),
+      
       body: Column(
         children: [
-          // Barra de búsqueda rápida
-          if (_searchQuery.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: TextEditingController(text: _searchQuery),
-                      decoration: InputDecoration(
-                        hintText: 'Buscar...',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  setState(() {
-                                    _searchQuery = '';
-                                  });
-                                  _applyFilters();
-                                },
-                              )
-                            : null,
-                        border: const OutlineInputBorder(),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                        _applyFilters();
-                      },
-                    ),
+          // Mensaje de "No se encontraron productos"
+          if (_filteredProducts.isEmpty)
+            const Expanded(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    'No se encontraron productos.', 
+                    style: TextStyle(fontSize: 18.0, color: kShrineBrown900),
+                    textAlign: TextAlign.center,
                   ),
-                ],
+                ),
+              ),
+            )
+          else
+            // Grid de productos (solo si hay productos)
+            Expanded(
+              child: AsymmetricView(
+                products: _filteredProducts, 
               ),
             ),
-          // Grid de productos
-          Expanded(
-            // CORRECCIÓN CLAVE: Usar _filteredProducts (soluciona la línea amarilla al filtrar)
-            child: AsymmetricView(
-              products: _filteredProducts, 
-            ),
-          ),
         ],
       ),
       resizeToAvoidBottomInset: false,
